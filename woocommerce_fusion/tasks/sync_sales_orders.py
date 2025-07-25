@@ -472,6 +472,11 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		new_sales_order.custom_cod_total = cod_total
 
+		if hasattr(new_sales_order, 'custom_prescription'):
+			prescription_image_url = self.get_prescription_image_url_from_meta_data(wc_order)
+			if prescription_image_url:
+				new_sales_order.custom_prescription = prescription_image_url
+
 		if (
 			(wc_server.enable_shipping_methods_sync)
 			and (shipping_lines := json.loads(wc_order.shipping_lines))
@@ -511,6 +516,31 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		self.create_and_link_payment_entry(wc_order, new_sales_order)
 		new_sales_order.save(ignore_permissions=True)
+
+
+	def get_prescription_image_url_from_meta_data(self, wc_order: WooCommerceOrder) -> str:
+		"""
+		Extract prescription_image_url from WooCommerce order meta_data if it exists.
+		"""
+		meta_data = wc_order.get("meta_data", None)
+		prescription_image_url = None
+
+		if meta_data:
+			try:
+				if isinstance(meta_data, str):
+					meta_data_list = json.loads(meta_data)
+				else:
+					meta_data_list = meta_data
+				
+				if isinstance(meta_data_list, list):
+					for item in meta_data_list:
+						if isinstance(item, dict) and item.get("key") == "prescription_image_url":
+							prescription_image_url = item.get("value")
+							break
+			except (json.JSONDecodeError, TypeError) as e:
+				frappe.log_error("Prescription URL Parse Error", f"Error parsing meta_data for prescription_image_url: {str(e)}")
+
+		return prescription_image_url
 
 	def create_or_link_customer_and_address(self, wc_order: WooCommerceOrder) -> str:
 		"""
