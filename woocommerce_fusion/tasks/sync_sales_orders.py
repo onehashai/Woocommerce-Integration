@@ -534,7 +534,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 				
 				if isinstance(meta_data_list, list):
 					for item in meta_data_list:
-						if isinstance(item, dict) and item.get("key") == "prescription_image_url":
+						if isinstance(item, dict) and item.get("key") == "prescription_url":
 							prescription_image_url = item.get("value")
 							break
 			except (json.JSONDecodeError, TypeError) as e:
