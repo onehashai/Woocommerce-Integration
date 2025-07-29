@@ -694,12 +694,8 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 				try:
 					address = frappe.get_doc("Address", addresses[0].parent)
 					company_name = new_sales_order.company
-					frappe.log_error("Company Name: ", company_name) 
 
-					item_tax = frappe.db.get_single_value(
-						"Woocommerce Server",
-						"wc_calculate_item_tax",
-					)
+					item_tax = frappe.db.get_value("WooCommerce Server", {"enable_sync": 1}, "wc_calculate_item_tax")
 					
 					if not item_tax:
 						if hasattr(address, 'state') and address.state:
