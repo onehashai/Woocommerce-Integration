@@ -75,7 +75,8 @@
   "tab_plugins",
   "advanced_shipment_tracking_section",
   "wc_plugin_advanced_shipment_tracking",
-  "wc_ast_shipment_providers"
+  "wc_ast_shipment_providers",
+  "wc_calculate_item_tax"
  ],
  "fields": [
   {
@@ -509,6 +510,12 @@
    "fieldname": "subtract_reserved_stock",
    "fieldtype": "Check",
    "label": "Reserved Stock Adjustment"
+  },
+  {
+    "fieldname": "wc_calculate_item_tax",
+    "fieldtype": "Check",
+    "label": "Calculate Item Tax in WooCommerce",
+    "default": 0
   }
  ],
  "index_web_pages_for_search": 1,

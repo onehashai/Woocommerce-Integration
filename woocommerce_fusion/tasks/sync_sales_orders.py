@@ -696,8 +696,12 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 					company_name = new_sales_order.company
 					frappe.log_error("Company Name: ", company_name) 
 
+					item_tax = frappe.db.get_single_value(
+						"Woocommerce Server",
+						"wc_calculate_item_tax",
+					)
 					
-					if company_name == "WOL3D India Limited":
+					if not item_tax:
 						if hasattr(address, 'state') and address.state:
 							if address.state.strip().lower() == "maharashtra":
 								tax_template_name = "Output GST In-state - WIL"
@@ -722,6 +726,11 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 									})
 							else:
 								pass
+
+					else:
+						new_sales_order.set_missing_values()
+						new_sales_order.calculate_taxes_and_totals()
+
 				
 				except Exception as addr_error:
 					frappe.log_error(f"Error accessing address {addresses[0].parent}: {str(addr_error)}", 
