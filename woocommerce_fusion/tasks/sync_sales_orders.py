@@ -730,6 +730,14 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 						new_sales_order.set_missing_values()
 						new_sales_order.calculate_taxes_and_totals()
 
+						if not new_sales_order.shipping_rule and new_sales_order.woocommerce_id:
+							add_tax_details(
+								new_sales_order,
+								wc_order.shipping_total,
+								"Shipping Total",
+								"Shipping Charges Payable - ORamp"
+							)
+
 				
 				except Exception as addr_error:
 					frappe.log_error(f"Error accessing address {addresses[0].parent}: {str(addr_error)}", 
