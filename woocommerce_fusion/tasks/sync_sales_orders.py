@@ -1205,7 +1205,7 @@ def update_woocommerce_order_prescription(woocommerce_id, prescription_url):
     }
 
     # Prepare basic auth header using requests built-in utilities
-    auth = f"Basic {base64.b64encode(f'{wc_settings.api_consumer_key}:{wc_settings.api_consumer_secret}')}
+    auth = f"Basic {base64.b64encode(f'{wc_settings.api_consumer_key}:{wc_settings.api_consumer_secret}')}"
 
     headers = {
         "Content-Type": "application/json",
