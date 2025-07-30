@@ -20,6 +20,9 @@ from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
 )
 
+import requests
+import base64
+
 
 def run_sales_order_sync_from_hook(doc, method):
 	if (
@@ -1175,3 +1178,55 @@ def get_addresses_linking_to(doctype, docname, fields=None):
 			["Dynamic Link", "link_name", "=", docname],
 		],
 	)
+
+
+@frappe.whitelist()
+def update_woocommerce_order_prescription(woocommerce_id, prescription_url):
+    if not woocommerce_id:
+        frappe.throw(_("WooCommerce ID is required"))
+
+    wc_servers = frappe.get_all('WooCommerce Server', filters={'enable_sync': 1}, fields=['name'])
+    if not wc_servers:
+        frappe.throw(_('No enabled WooCommerce Server found'))
+
+    wc_settings = frappe.get_doc('WooCommerce Server', wc_servers[0].name)
+    if not wc_settings.woocommerce_server_url or not wc_settings.api_consumer_key or not wc_settings.api_consumer_secret:
+        frappe.throw(_('WooCommerce settings not configured'))
+
+    wc_url = wc_settings.woocommerce_server_url.rstrip('/')
+    order_id = woocommerce_id
+    api_url = f"{wc_url}/wp-json/wc/v3/orders/{order_id}"
+
+    order_data = {
+        "meta_data": [{
+            "key": "prescription_url",
+            "value": prescription_url
+        }]
+    }
+
+    # Prepare basic auth header using requests built-in utilities
+    auth = f"Basic {base64.b64encode(f'{wc_settings.api_consumer_key}:{wc_settings.api_consumer_secret}')}
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+		"Authorization": auth
+    }
+
+    try:
+        frappe.log_error("request_data", {"url": api_url, "data": order_data, "headers": headers})
+
+        response = requests.put(api_url, json=order_data, headers=headers)
+        frappe.log_error("response", response.text)
+
+        frappe.msgprint(f"Prescription sent to WooCommerce order {order_id} successfully")
+
+        return response.json()
+
+    except requests.exceptions.HTTPError as e:
+        frappe.log_error(f'Failed to update WooCommerce order. Status: {response.status_code}, Response: {response.text}')
+        frappe.throw(f'Failed to update WooCommerce order. Status: {response.status_code}, Message: {response.text}')
+    except Exception as e:
+        frappe.log_error(f'Error sending prescription to WooCommerce: {str(e)}')
+        frappe.throw(f'Error sending prescription to WooCommerce: {str(e)}')
+
