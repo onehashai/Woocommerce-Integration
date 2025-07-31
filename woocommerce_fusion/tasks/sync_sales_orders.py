@@ -472,6 +472,11 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		new_sales_order.custom_cod_total = cod_total
 
+		if hasattr(new_sales_order, 'custom_prescription'):
+			prescription_image_url = self.get_prescription_image_url_from_meta_data(wc_order)
+			if prescription_image_url:
+				new_sales_order.custom_prescription = prescription_image_url
+
 		if (
 			(wc_server.enable_shipping_methods_sync)
 			and (shipping_lines := json.loads(wc_order.shipping_lines))
@@ -511,6 +516,31 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 
 		self.create_and_link_payment_entry(wc_order, new_sales_order)
 		new_sales_order.save(ignore_permissions=True)
+
+
+	def get_prescription_image_url_from_meta_data(self, wc_order: WooCommerceOrder) -> str:
+		"""
+		Extract prescription_image_url from WooCommerce order meta_data if it exists.
+		"""
+		meta_data = wc_order.get("meta_data", None)
+		prescription_image_url = None
+
+		if meta_data:
+			try:
+				if isinstance(meta_data, str):
+					meta_data_list = json.loads(meta_data)
+				else:
+					meta_data_list = meta_data
+				
+				if isinstance(meta_data_list, list):
+					for item in meta_data_list:
+						if isinstance(item, dict) and item.get("key") == "prescription_url":
+							prescription_image_url = item.get("value")
+							break
+			except (json.JSONDecodeError, TypeError) as e:
+				frappe.log_error("Prescription URL Parse Error", f"Error parsing meta_data for prescription_image_url: {str(e)}")
+
+		return prescription_image_url
 
 	def create_or_link_customer_and_address(self, wc_order: WooCommerceOrder) -> str:
 		"""
@@ -665,31 +695,46 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 					address = frappe.get_doc("Address", addresses[0].parent)
 					company_name = new_sales_order.company
 
+					item_tax = frappe.db.get_value("WooCommerce Server", {"enable_sync": 1}, "wc_calculate_item_tax")
+					
+					if not item_tax:
+						if hasattr(address, 'state') and address.state:
+							if address.state.strip().lower() == "maharashtra":
+								tax_template_name = "Output GST In-state - WIL"
+							else:
+								tax_template_name = "Output GST Out-state - WIL"
 
-					if hasattr(address, 'state') and address.state:
-						if address.state.strip().lower() == "maharashtra":
-							tax_template_name = "Output GST In-state - WIL"
-						else:
-							tax_template_name = "Output GST Out-state - WIL"
+							new_sales_order.taxes_and_charges = tax_template_name
+							
+							if tax_template_name:
+								tax_template = frappe.get_doc("Sales Taxes and Charges Template", tax_template_name)
+								for tax in tax_template.taxes:
+									new_sales_order.append("taxes", {
+										"charge_type": tax.charge_type,
+										"account_head": tax.account_head,
+										"description": tax.description,
+										"rate": tax.rate,
+										# "included_in_print_rate": tax.included_in_print_rate if hasattr(tax, 'included_in_print_rate') else 0,
+										"included_in_print_rate": 1,
+										"tax_amount": 0, 
+										"tax_amount_after_discount_amount": 0, 
+										"total": 0 
+									})
+							else:
+								pass
 
-						new_sales_order.taxes_and_charges = tax_template_name
-						
-						if tax_template_name:
-							tax_template = frappe.get_doc("Sales Taxes and Charges Template", tax_template_name)
-							for tax in tax_template.taxes:
-								new_sales_order.append("taxes", {
-									"charge_type": tax.charge_type,
-									"account_head": tax.account_head,
-									"description": tax.description,
-									"rate": tax.rate,
-									# "included_in_print_rate": tax.included_in_print_rate if hasattr(tax, 'included_in_print_rate') else 0,
-									"included_in_print_rate": 1,
-									"tax_amount": 0, 
-									"tax_amount_after_discount_amount": 0, 
-									"total": 0 
-								})
-						else:
-							pass
+					else:
+						new_sales_order.set_missing_values()
+						new_sales_order.calculate_taxes_and_totals()
+
+						if not new_sales_order.shipping_rule and new_sales_order.woocommerce_id:
+							add_tax_details(
+								new_sales_order,
+								wc_order.shipping_total,
+								"Shipping Total",
+								"Shipping Charges Payable - ORAMP"
+							)
+
 				
 				except Exception as addr_error:
 					frappe.log_error(f"Error accessing address {addresses[0].parent}: {str(addr_error)}", 
