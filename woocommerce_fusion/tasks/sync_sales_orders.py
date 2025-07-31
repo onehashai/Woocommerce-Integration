@@ -20,9 +20,6 @@ from woocommerce_fusion.woocommerce.woocommerce_api import (
 	generate_woocommerce_record_name_from_domain_and_id,
 )
 
-import requests
-import base64
-
 
 def run_sales_order_sync_from_hook(doc, method):
 	if (
