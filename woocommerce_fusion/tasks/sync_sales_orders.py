@@ -735,7 +735,7 @@ class SynchroniseSalesOrder(SynchroniseWooCommerce):
 								new_sales_order,
 								wc_order.shipping_total,
 								"Shipping Total",
-								"Shipping Charges Payable - ORamp"
+								"Shipping Charges Payable - ORAMP"
 							)
 
 				
