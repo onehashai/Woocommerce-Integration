@@ -436,7 +436,7 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		modified, item = self.set_item_fields(item=item)
 		item.flags.created_by_sync = True
 
-		item.insert()
+		item.save(ignore_permissions = True)
 
 		self.item = ERPNextItemToSync(
 			item=item,
