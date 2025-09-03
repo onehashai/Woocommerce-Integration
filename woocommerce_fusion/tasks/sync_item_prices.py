@@ -130,9 +130,9 @@ class SynchroniseItemPrice(SynchroniseWooCommerce):
 					if isinstance(wc_product.regular_price, str)
 					else wc_product.regular_price
 				)
-				if wc_product_regular_price != price_list_rate:
-					wc_product.regular_price = price_list_rate
-					wc_product.save()
+				#if wc_product_regular_price != price_list_rate:
+					#wc_product.regular_price = price_list_rate
+					#wc_product.save()
 			except Exception:
 				error_message = f"{frappe.get_traceback()}\n\n Product Data: \n{str(wc_product.as_dict())}"
 				frappe.log_error("WooCommerce Error: Price List Sync", error_message)
