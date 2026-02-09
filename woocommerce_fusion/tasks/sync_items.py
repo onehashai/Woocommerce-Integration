@@ -393,12 +393,23 @@ class SynchroniseItem(SynchroniseWooCommerce):
 		# Handle variants' attributes
 		if wc_product.type in ["variable", "variation"]:
 			self.create_or_update_item_attributes(wc_product)
-			wc_attributes = json.loads(wc_product.attributes)
-			for wc_attribute in wc_attributes:
-				row = item.append("attributes")
-				row.attribute = wc_attribute["name"]
-				if wc_product.type == "variation":
-					row.attribute_value = wc_attribute["option"]
+			# wc_attributes = json.loads(wc_product.attributes)
+			wc_attributes = json.loads(wc_product.attributes) if wc_product.attributes else []
+
+			if not wc_attributes and wc_product.type == "variation":
+				pass
+
+			# for wc_attribute in wc_attributes:
+			# 	row = item.append("attributes")
+			# 	row.attribute = wc_attribute["name"]
+			# 	if wc_product.type == "variation":
+			# 		row.attribute_value = wc_attribute["option"]
+			else:
+				for wc_attribute in wc_attributes:
+					row = item.append("attributes")
+					row.attribute = wc_attribute["name"]
+					if wc_product.type == "variation":
+						row.attribute_value = wc_attribute["option"]
 
 		# Handle variants
 		if wc_product.type == "variable":
